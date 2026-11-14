@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#05070d" />
+<title>赛博算命 · 测测你的算法浓度</title>
+<style>
+  :root{
+    --bg:#05070d; --panel:#0b1020; --panel2:#0f1730;
+    --line:#1d2a4a; --text:#e6edf7; --muted:#7d8aa5;
+    --cyan:#22d3ee; --violet:#a78bfa; --amber:#f59e0b; --pink:#f472b6;
+    --ok:#34d399;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;
+    min-height:100dvh; line-height:1.6; overflow-x:hidden;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background:
+      radial-gradient(60% 45% at 15% 0%, rgba(34,211,238,.14), transparent 60%),
+      radial-gradient(55% 40% at 90% 8%, rgba(167,139,250,.16), transparent 62%),
+      radial-gradient(70% 50% at 50% 105%, rgba(244,114,182,.10), transparent 60%);
+  }
+  body::after{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.32;
+    background:repeating-linear-gradient(180deg, rgba(255,255,255,.045) 0 1px, transparent 1px 3px);
+  }
+  .wrap{position:relative; z-index:1; max-width:640px; margin:0 auto; padding:18px 18px 44px;
+    padding-bottom:calc(44px + env(safe-area-inset-bottom));}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Courier New",monospace}
+
+  /* ---------- 顶部 HUD ---------- */
+  .hud{display:flex; align-items:center; justify-content:space-between; gap:10px;
+       font-size:11px; letter-spacing:.14em; color:var(--muted); text-transform:uppercase;
+       padding-bottom:12px; border-bottom:1px solid var(--line); margin-bottom:22px}
+  .hud .dot{display:inline-block; width:6px;height:6px;border-radius:50%;background:var(--cyan);
+    box-shadow:0 0 10px var(--cyan); margin-right:7px; animation:pulse 1.9s infinite}
+  @keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
+
+  /* ---------- 封面 ---------- */
+  .cover{text-align:center; padding-top:6vh}
+  .chip{display:inline-block; font-size:11px; letter-spacing:.18em; color:var(--cyan);
+    border:1px solid rgba(34,211,238,.35); background:rgba(34,211,238,.07);
+    padding:5px 12px; border-radius:999px; margin-bottom:22px}
+  h1{font-size:clamp(30px,9vw,44px); line-height:1.18; margin:0 0 14px; letter-spacing:-.5px}
+  h1 .glow{background:linear-gradient(100deg,var(--cyan),var(--violet) 55%,var(--pink));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    filter:drop-shadow(0 0 16px rgba(34,211,238,.28))}
+  .sub{color:var(--muted); font-size:14.5px; margin:0 auto 26px; max-width:30em}
+  .sub b{color:#c7d6f0; font-weight:600}
+  .quote{border-left:2px solid rgba(167,139,250,.5); padding:2px 0 2px 14px; text-align:left;
+    color:#9fb0cf; font-size:13.5px; margin:0 0 28px}
+  .btn{display:block; width:100%; border:0; border-radius:14px; cursor:pointer;
+    font-size:17px; font-weight:700; padding:16px; color:#04121a;
+    background:linear-gradient(100deg,var(--cyan),#7dd3fc 45%,var(--violet));
+    box-shadow:0 10px 30px -12px rgba(34,211,238,.85);
+    transition:transform .12s ease, box-shadow .2s ease; font-family:inherit}
+  .btn:active{transform:scale(.985)}
+  .btn.ghost{background:transparent; color:var(--text); border:1px solid var(--line);
+    box-shadow:none; font-weight:600; font-size:15px; padding:14px; margin-top:12px}
+  .meta{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:22px}
+  .meta span{font-size:11.5px; color:var(--muted); border:1px solid var(--line);
+    border-radius:8px; padding:5px 9px}
+
+  /* ---------- 答题 ---------- */
+  .qtop{display:flex; align-items:center; justify-content:space-between; font-size:12px;
+    color:var(--muted); letter-spacing:.1em; margin-bottom:10px}
+  .bar{height:3px; background:var(--line); border-radius:99px; overflow:hidden; margin-bottom:26px}
+  .bar > i{display:block; height:100%; width:0%;
+    background:linear-gradient(90deg,var(--cyan),var(--violet)); transition:width .35s ease;
+    box-shadow:0 0 12px rgba(34,211,238,.7)}
+  .qtag{display:inline-block; font-size:11px; letter-spacing:.16em; color:var(--violet);
+    margin-bottom:10px}
+  .q{font-size:19.5px; line-height:1.5; font-weight:700; margin:0 0 8px}
+  .qhint{font-size:12.5px; color:var(--muted); margin:0 0 18px}
+  .opt{display:flex; gap:12px; align-items:flex-start; width:100%; text-align:left;
+    background:var(--panel); border:1px solid var(--line); color:var(--text);
+    border-radius:13px; padding:14px 15px; margin-bottom:10px; cursor:pointer;
+    font-size:15px; line-height:1.45; font-family:inherit;
+    transition:border-color .16s ease, background .16s ease, transform .12s ease}
+  .opt:active{transform:scale(.99)}
+  .opt .key{flex:0 0 22px; height:22px; border-radius:6px; margin-top:1px;
+    border:1px solid var(--line); display:grid; place-items:center;
+    font-size:11px; color:var(--muted); background:#0a1020; font-family:ui-monospace,monospace}
+  .opt.sel{border-color:rgba(34,211,238,.8); background:rgba(34,211,238,.10);
+    box-shadow:0 0 0 1px rgba(34,211,238,.25), 0 8px 24px -14px rgba(34,211,238,.9)}
+  .opt.sel .key{background:var(--cyan); color:#04121a; border-color:var(--cyan); font-weight:700}
+
+  /* ---------- 解析中 ---------- */
+  .an{min-height:58vh; display:flex; flex-direction:column; justify-content:center}
+  .ring{width:96px;height:96px;margin:0 auto 26px; border-radius:50%;
+    border:2px solid var(--line); border-top-color:var(--cyan); border-right-color:var(--violet);
+    animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .an h2{text-align:center; font-size:17px; margin:0 0 20px; letter-spacing:.06em}
+  .log{font-family:ui-monospace,monospace; font-size:12.5px; color:#8ea3c4; min-height:132px}
+  .log div{opacity:0; animation:fin .3s ease forwards}
+  .log .ok{color:var(--ok)}
+  .log .warn{color:var(--amber)}
+  @keyframes fin{to{opacity:1}}
+
+  /* ---------- 结果 ---------- */
+  .card{border:1px solid var(--line); border-radius:18px; padding:22px 18px 20px;
+    background:linear-gradient(180deg, rgba(34,211,238,.07), rgba(11,16,32,.9) 28%, var(--panel));
+    box-shadow:0 24px 60px -36px rgba(34,211,238,.9)}
+  .card .lab{font-size:11px; letter-spacing:.2em; color:var(--muted); text-align:center}
+  .pname{font-size:clamp(21px,6.2vw,30px); text-align:center; font-weight:800; margin:8px 0 4px;
+    letter-spacing:-.5px; text-wrap:balance; line-height:1.3}
+  .pname span{background:linear-gradient(100deg,var(--cyan),var(--violet));
+    -webkit-background-clip:text; background-clip:text; color:transparent}
+  .ptag{text-align:center; color:var(--muted); font-size:13px; margin:0 0 20px}
+  .den{display:flex; align-items:baseline; justify-content:center; gap:8px; margin:0 0 6px}
+  .den b{font-size:40px; font-family:ui-monospace,monospace; letter-spacing:-2px;
+    background:linear-gradient(100deg,var(--cyan),var(--pink));
+    -webkit-background-clip:text; background-clip:text; color:transparent}
+  .den i{font-style:normal; color:var(--muted); font-size:13px}
+  .denlabel{text-align:center; font-size:11px; letter-spacing:.2em; color:var(--muted); margin-bottom:20px}
+  .verdict{font-size:14.6px; line-height:1.85; color:#d5e1f5; margin:0 0 16px;
+    padding:16px; border-radius:12px; background:rgba(255,255,255,.03);
+    border-left:2px solid rgba(34,211,238,.55)}
+  .advice{font-size:13.5px; color:var(--cyan); background:rgba(34,211,238,.07);
+    border:1px dashed rgba(34,211,238,.35); border-radius:10px; padding:11px 13px; margin:0}
+  .stamp{margin-top:16px; font-size:11px; color:var(--muted); text-align:center;
+    font-family:ui-monospace,monospace; letter-spacing:.06em}
+
+  /* ---------- 真相 ---------- */
+  .truth{margin-top:18px; border:1px solid rgba(245,158,11,.35); border-radius:14px;
+    background:rgba(245,158,11,.06); padding:0; overflow:hidden}
+  .truth > button{width:100%; text-align:left; background:none; border:0; color:#fcd34d;
+    font-size:14px; font-weight:700; padding:15px 16px; cursor:pointer; font-family:inherit}
+  .truth .body{display:none; padding:0 16px 16px; color:#e5dcc6; font-size:14px; line-height:1.8}
+  .truth.open .body{display:block}
+  .truth .body b{color:var(--amber)}
+  .truth .body .small{font-size:12.5px; color:#b9ac92; margin-top:12px}
+  .rand{font-family:ui-monospace,monospace; font-size:12px; color:#cbb98f;
+    background:rgba(0,0,0,.35); border-radius:8px; padding:10px 12px; margin:12px 0 0;
+    white-space:pre-wrap; word-break:break-all; line-height:1.7}
+  .rand b{color:var(--ok)}
+
+  /* ---------- 主持人 ---------- */
+  .host h2{font-size:20px; margin:0 0 6px}
+  .host .lead{color:var(--muted); font-size:13px; margin:0 0 20px}
+  .prow{border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:9px;
+    background:var(--panel); font-size:13.5px}
+  .prow b{color:var(--cyan)}
+  .prow .k{float:right; font-family:ui-monospace,monospace; color:var(--muted); font-size:12px}
+  .script{border:1px solid var(--line); border-radius:12px; padding:14px 16px; background:var(--panel);
+    font-size:13.6px; line-height:1.9; color:#cfdcf2}
+  .script p{margin:0 0 10px}
+  .script .who{color:var(--violet); font-size:11.5px; letter-spacing:.14em; display:block; margin-bottom:2px}
+  .qrbox{margin:18px 0 0; text-align:center; border:1px solid var(--line); border-radius:12px;
+    padding:16px; background:#fff}
+  .qrbox img{width:min(220px,62vw); height:auto; display:block; margin:0 auto 8px}
+  .qrbox p{margin:0; color:#334; font-size:11.5px; font-family:ui-monospace,monospace}
+  .qrbox .miss{color:#777; font-size:12px}
+  footer{margin-top:26px; text-align:center; color:#4a5876; font-size:11px; line-height:1.8}
+  .hidden{display:none !important}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+/* =========================================================================
+   赛博算命 · 测测你的算法浓度
+   核心机制：最终人设由「页面加载时的随机数」决定，与 6 道题的答案完全无关。
+   答案只暂存在内存里，不上传、不参与任何计算（见 assignLane 与 submit）。
+   主持人模式：在网址后加 #host
+   ========================================================================= */
+
+const DECOY = [
+  {
+    tag: '01 / 夜间代谢',
+    q: '凌晨 01:47，手机剩 23% 电，你在：',
+    hint: '选最接近的那一个，别美化自己。',
+    opts: [
+      '画完最后一张装配图就睡（真的，最后一张）',
+      '看 B 站《三分钟讲完有限元》，进度条停在 02:13',
+      '一条条刷「30 岁转行也来得及」',
+      '已经睡了，梦里还在调 PID，怎么调都振荡'
+    ]
+  },
+  {
+    tag: '02 / 信息节律',
+    q: '你刷短视频的样子，最像：',
+    hint: '这不是自控力测试，这是体检。',
+    opts: [
+      '清醒型：刷到第三条就关掉，然后打开另一个 App',
+      '自动驾驶型：手指比脑子快，一抬头宿舍已经熄灯',
+      '目标型：我只查一下「这个怎么弄」，然后看完两小时修驴蹄子',
+      '学习型：我只刷知识区，刷完觉得自己变强了（其实是在选课）'
+    ]
+  },
+  {
+    tag: '03 / 消费路径',
+    q: '购物节的购物车，最终结局通常是：',
+    hint: '诚实的答案往往有点疼。',
+    opts: [
+      '加购 47 件，付款 2 件，其中一件是数据线',
+      '收快递时才想起来：这是我双十一买的，现在双十二了',
+      '我从不被套路，我只买需要的（比如那个 299 的「效率工具」）',
+      '买了三本专业书，塑封完好，摆在桌角当精神图腾'
+    ]
+  },
+  {
+    tag: '04 / 未来接口',
+    q: '亲戚问「毕业准备干嘛」，你的标准回答：',
+    hint: '说出你实际会说的那句，不是想说的那句。',
+    opts: [
+      '「考研。」（考了两年，学校还没定）',
+      '「看情况。」（每天都在看情况）',
+      '「先工作，先养活自己。」（然后打开招聘软件看了三分钟）',
+      '「我多条腿走路。」（考公考编考研三线并进，一线未动）'
+    ]
+  },
+  {
+    tag: '05 / 内耗日志',
+    q: '深夜 emo，你的固定剧本是：',
+    hint: '最后一题了，撑住。',
+    opts: [
+      '「今天效率太低」→ 失眠 → 明天更低 →「我果然不行」',
+      '打开备忘录写「从明天开始」，写了两页，明天没打开过',
+      '找人聊，聊完开始担心「我是不是打扰到别人了」',
+      '刷别人的 vlog，看别人过得很好，然后继续刷'
+    ]
+  }
+];
+
+/* 第 6 题：伪装成「随机种子」，本质是分组题的皮。答案会被记录，但不参与判定。 */
+const SEED = {
+  tag: '06 / 随机种子',
+  q: '本次测算需要一颗随机种子来启动，凭直觉选一个：',
+  hint: '不要思考超过两秒。这道题没有对错，也没有意义——就像你此刻的心情。',
+  opts: ['0x00 —— 归零', '0x7F —— 半格电', '0xA5 —— 乱码', '0xFF —— 满格，硬撑']
+};
+
+const PERSONAS = [
+  {
+    key: '0x00', name: '多巴胺提款机', tag: '全自动投喂 · 余额为负', density: '97.3',
+    verdict: '你已把注意力外包给投喂口：平均每 12 秒提一次款，每次到账 0.3 克多巴胺，手续费是你的睡眠。你说「只看五分钟」，系统记录 137 分钟；两次决定睡觉，都先把「下一个」看完。收藏夹里 47 条自律干货，回看 0 次。你不是没有精神需求，你是把需求交给了推荐位。',
+    advice: '今晚关屏十分钟，什么都不喂，看你还饿不饿。'
+  },
+  {
+    key: '0x7F', name: '薛定谔的奋斗逼', tag: '未观测 = 又卷又躺', density: '88.6',
+    verdict: '「考研」是你使用频率最高、指代最模糊的词：报名表还空着，网课停在 02:13，桌面摆成了努力现场，卷子还是新的。你不是在努力，你在维护「努力中」这个状态别塌下来。叠加态必须靠观测坍缩，而你一直在等一个不会来的观测者。',
+    advice: '观测的学名叫：今天做完一道题。另外，躺平不必愧疚——愧疚不产生热量。'
+  },
+  {
+    key: '0xA5', name: '赛博仓鼠（限量款）', tag: '硬盘 99% · 内存 0.3 秒', density: '91.0',
+    verdict: '硬盘 512G 已用 508G，全是「以后会看」的课程、模板、截图和离线 PDF；购物车 47 件，结算 2 件，有个包裹在路上走了 18 天；会员开了 6 个，最重的器官叫收藏夹。你囤的不是知识，是「我还有救」的物证。',
+    advice: '这周只用掉你已经拥有的 1%，比再买一份便宜得多。'
+  },
+  {
+    key: '0xFF', name: '人形超频主机（无散热版）', tag: '占用率 99% · 输出为 0', density: '99.4',
+    verdict: '你的 CPU 常年 99%：回放白天说错的那句话，预演明天可能尴尬的场面，模拟三年后的失败，偶尔把三年前的失误调出来再跑一遍。风扇狂转，机身发烫，输出为零——因为你跑的是一个不存在的程序。别人以为你在发呆，其实你在空转。',
+    advice: '关机十分钟不是偷懒，散热是硬件的基本需求。'
+  }
+];
+
+/* ---------- 真·随机分配：只在这里决定人设，和答案无关 ---------- */
+function assignLane() {
+  const n = 4;
+  const buf = new Uint32Array(1);
+  if (window.crypto && crypto.getRandomValues) {
+    const limit = Math.floor(0xFFFFFFFF / n) * n;   // 拒绝采样，保证四选一等概率
+    let v;
+    do { crypto.getRandomValues(buf); v = buf[0]; } while (v >= limit);
+    return v % n;
+  }
+  return Math.floor(Math.random() * n);
+}
+
+const state = { lane: assignLane(), idx: 0, answers: [], screen: 'cover' };
+const app = document.getElementById('app');
+
+/* ---------- 通用片段 ---------- */
+const hud = (right) => `
+  <div class="hud">
+    <div><span class="dot"></span>CYBER DIVINATION v2.4</div>
+    <div class="mono">${right || ''}</div>
+  </div>`;
+
+const autoNext = (fn) => { setTimeout(fn, 240); };
+
+/* ---------- 封面 ---------- */
+function renderCover() {
+  state.screen = 'cover';
+  app.innerHTML = `
+    ${hud('session: anonymous')}
+    <div class="cover">
+      <div class="chip">机械与汽车工程学院 · 团支书茶话会</div>
+      <h1>赛博算命<br><span class="glow">测测你的算法浓度</span></h1>
+      <p class="sub">做自己精神世界的<b>「主控芯片」</b><br>——算法推荐下的精神文化需求</p>
+      <div class="quote">
+        6 道题，90 秒。<br>
+        系统会给你发一张人设卡。<br>
+        请先记住它，最后我们聊聊它是怎么来的。
+      </div>
+      <button class="btn" id="start">开始测算</button>
+      <div class="meta">
+        <span>匿名 · 不收集姓名</span>
+        <span>6 题 / 约 90 秒</span>
+        <span>做完请记住人设</span>
+      </div>
+      <footer>答案仅保存在你的手机里，不会上传<br>做完可以反着再选一遍试试</footer>
+    </div>`;
+  document.getElementById('start').onclick = () => { state.idx = 0; state.answers = []; renderQuiz(); };
+}
+
+/* ---------- 答题 ---------- */
+function renderQuiz() {
+  state.screen = 'quiz';
+  const isSeed = state.idx >= DECOY.length;
+  const item = isSeed ? SEED : DECOY[state.idx];
+  const total = DECOY.length + 1;
+  const no = state.idx + 1;
+  const pct = Math.round((state.idx / total) * 100);
+  app.innerHTML = `
+    ${hud(isSeed ? 'stage 2/2 · 校准' : 'stage 1/2 · 采样')}
+    <div class="qtop"><div class="mono">QUESTION ${String(no).padStart(2, '0')} / ${total}</div><div>${pct}%</div></div>
+    <div class="bar"><i style="width:${pct}%"></i></div>
+    <div class="qtag mono">${item.tag}</div>
+    <h2 class="q">${item.q}</h2>
+    <p class="qhint">${item.hint}</p>
+    <div id="opts">
+      ${item.opts.map((t, i) => `
+        <button class="opt" data-i="${i}">
+          <span class="key">${'ABCD'[i]}</span><span>${t}</span>
+        </button>`).join('')}
+    </div>
+    <footer>${isSeed ? '选完就进结果页' : '不用纠结，第一反应最准'}</footer>`;
+
+  const buttons = [...document.querySelectorAll('.opt')];
+  buttons.forEach(btn => {
+    btn.onclick = () => {
+      buttons.forEach(b => b.disabled = true);
+      btn.classList.add('sel');
+      const pick = Number(btn.dataset.i);
+      state.answers[state.idx] = pick;
+      autoNext(() => {
+        if (state.idx < DECOY.length) { state.idx++; renderQuiz(); }
+        else { renderAnalyzing(); }
+      });
+    };
+  });
+}
+
+/* ---------- 解析动画 ---------- */
+function renderAnalyzing() {
+  state.screen = 'analyzing';
+  const P = PERSONAS[state.lane];
+  app.innerHTML = `
+    ${hud('computing · 请勿退出')}
+    <div class="an">
+      <div class="ring"></div>
+      <h2>正在解析你的精神频谱…</h2>
+      <div class="log mono" id="log"></div>
+    </div>`;
+  const log = document.getElementById('log');
+  const lines = [
+    '> 采集样本 …………………………… <span class="ok">OK</span>',
+    '> 比对 1,204,593 份同龄人数据 …… <span class="ok">OK</span>',
+    '> 计算精神熵 ………………………… <span class="ok">OK</span>',
+    '> 匹配人设库 ………………………… <span class="warn">命中 1 条</span>',
+    '> 生成判词 …………………………… <span class="ok">OK</span>',
+    '> 正在抹去分析痕迹 ……………… <span class="ok">OK</span>'
+  ];
+  lines.forEach((t, i) => {
+    const d = document.createElement('div');
+    d.innerHTML = t;
+    d.style.animationDelay = (i * 0.34) + 's';
+    log.appendChild(d);
+  });
+  setTimeout(renderResult, 2600);
+  // P 只用于确保 lane 已确定；判词不依赖任何答案
+  void P;
+}
+
+/* ---------- 结果 ---------- */
+function renderResult() {
+  state.screen = 'result';
+  const P = PERSONAS[state.lane];
+  app.innerHTML = `
+    ${hud('result · locked')}
+    <div class="card">
+      <div class="lab mono">YOUR PERSONA / 系统判词</div>
+      <div class="pname"><span>${P.name}</span></div>
+      <div class="ptag">${P.tag}</div>
+      <div class="den"><b>${P.density}</b><i>%</i></div>
+      <div class="denlabel mono">ALGORITHM DENSITY / 算法浓度</div>
+      <p class="verdict">${P.verdict}</p>
+      <p class="advice">系统建议 · ${P.advice}</p>
+      <div class="stamp mono">seed ${P.key} · issued by 算法推荐引擎</div>
+    </div>
+
+    <div class="truth" id="truth">
+      <button id="tbtn">先记住你的人设，再点这里看本次测算的真相 ▸</button>
+      <div class="body">
+        <p><b>这张卡，不是「测」出来的。</b></p>
+        <p>你的 6 个回答只被记录，<b>没有被计算</b>。人设是页面打开的那一刻，从 4 个里随机抽的一份——抽到哪份，跟你选 0x00 还是 0xFF 毫无关系，跟你昨夜熬到几点也毫无关系。</p>
+        <div class="rand mono">lane = crypto.random() % 4 = <b>${state.lane}</b> &nbsp;// answers[] = [${state.answers.join(', ')}] → 未参与运算</div>
+        <p>所以刚才那张卡精准得像真的，是因为它本来就写得足够普遍，而不是因为它读懂了你。<br>你以为它在读你，它在摇骰子。</p>
+        <p class="small">验证方式：把 6 道题全部反着选一遍，再测一次。</p>
+        <button class="btn ghost" id="again">反着选一遍，再来一次</button>
+      </div>
+    </div>
+    <button class="btn ghost" id="back">回到封面</button>
+    <footer>seed 已锁定，重测会重新抽签<br>本页不联网 · 不上传任何数据</footer>`;
+
+  const t = document.getElementById('truth');
+  document.getElementById('tbtn').onclick = () => {
+    t.classList.toggle('open');
+    if (t.classList.contains('open')) t.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+  document.getElementById('again').onclick = () => location.reload();
+  document.getElementById('back').onclick = () => { state.lane = assignLane(); renderCover(); };
+}
+
+/* ---------- 主持人模式 #host ---------- */
+function renderHost() {
+  state.screen = 'host';
+  app.innerHTML = `
+    ${hud('host console')}
+    <div class="host">
+      <h2>主持人控制台</h2>
+      <p class="lead">这一页不要投屏给观众。四个结果先自己过一遍，心里有底。</p>
+      ${PERSONAS.map(p => `
+        <div class="prow"><span class="k">${p.key}</span><b>${p.name}</b><br>${p.tag}　·　算法浓度 ${p.density}%</div>`).join('')}
+
+      <h2 style="margin-top:26px;font-size:15px">现场口播 · 三段</h2>
+      <div class="script">
+        <p><span class="who">① 发码（30 秒）</span>大家扫一下这个码，6 道题，90 秒，别思考太久。做完先记住你的人设名字，先别说出来，等下我们要用。</p>
+        <p><span class="who">② 收网（60 秒）</span>好，抽到「多巴胺提款机」的举个手？「薛定谔的奋斗逼」？「赛博仓鼠」？「人形超频主机」？——很好，四种都有，很随机，很科学。</p>
+        <p><span class="who">③ 反转（关键）</span>现在告诉大家一件事：这份问卷里，你们的答案一个都没有被使用。人设是页面打开那一秒随机抽的。也就是说，一个把 6 道题全反着选的人，和全按真实选的人，抽到同一张卡的概率完全一样。刚才那些「太准了」——准的不是它，是你自己的孤独足够通用。</p>
+      </div>
+
+      <div class="qrbox" id="qrbox">
+        <img id="qr" src="qrcode.png" alt="问卷二维码" />
+        <p id="qrnote">qrcode.png · 扫码进入问卷</p>
+      </div>
+
+      <footer>把手机连上大屏，投这一页做控场<br>观众用的永远是首页，不会进到 /#host<br>
+      <span style="color:#f59e0b">如果改用问卷星或别的链接，请先运行 make_qr.py 重新生成 qrcode.png，否则这张码指向旧地址。</span></footer>
+    </div>`;
+  const img = document.getElementById('qr');
+  img.onerror = () => {
+    document.getElementById('qrbox').innerHTML =
+      '<p class="miss">还没有 qrcode.png：把问卷链接发给 AI，或运行 make_qr.py 生成后放在同一目录</p>';
+  };
+}
+
+/* ---------- 路由 ---------- */
+function boot() {
+  if (location.hash === '#host') renderHost();
+  else renderCover();
+}
+window.addEventListener('hashchange', boot);
+boot();
+</script>
+</body>
+</html>
